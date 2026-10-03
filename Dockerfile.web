@@ -1,0 +1,24 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY web/package*.json ./web/
+RUN npm install --prefix web
+
+COPY prisma ./prisma
+RUN npm install -g @prisma/cli && npx prisma generate
+
+COPY web ./web
+WORKDIR /app/web
+RUN npm run build
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/web ./.next ./
+COPY web/package*.json ./
+RUN npm install --prefix . --omit=dev
+
+EXPOSE 3000
+CMD ["npm", "start"]
