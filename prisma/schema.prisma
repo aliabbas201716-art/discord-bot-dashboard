@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GuildConfig {
+  id                String            @id @default(cuid())
+  guildId           String            @unique
+  name              String?
+  prefix            String            @default("!")
+  moderationChannel String?
+  logChannel        String?
+  welcomeChannel    String?
+  goodbyeChannel    String?
+  starboardChannel  String?
+  suggestionChannel String?
+  autoRoleIds       String[]          @default([])
+  blacklistedWords  String[]          @default([])
+  inviteFilter      Boolean           @default(true)
+  mentionFilter     Boolean           @default(true)
+  spamFilter        Boolean           @default(true)
+  welcomeMessage    String?
+  goodbyeMessage    String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  warnings        Warning[]
+  suggestions     Suggestion[]
+  reactionRoles   ReactionRole[]
+  autoResponders  AutoResponder[]
+  formSubmissions FormSubmission[]
+  logEntries      LogEntry[]
+}
+
+model Warning {
+  id          String      @id @default(cuid())
+  guildId     String
+  guild       GuildConfig @relation(fields: [guildId], references: [guildId])
+  userId      String
+  moderatorId String?
+  reason      String
+  type        String      @default("warn")
+  createdAt   DateTime    @default(now())
+}
+
+model Suggestion {
+  id        String      @id @default(cuid())
+  guildId   String
+  guild     GuildConfig @relation(fields: [guildId], references: [guildId])
+  userId    String
+  content   String
+  status    String      @default("pending")
+  votes     Int         @default(0)
+  createdAt DateTime    @default(now())
+}
+
+model ReactionRole {
+  id        String      @id @default(cuid())
+  guildId   String
+  guild     GuildConfig @relation(fields: [guildId], references: [guildId])
+  messageId String
+  channelId String
+  emoji     String
+  roleId    String
+  label     String?
+  createdAt DateTime    @default(now())
+}
+
+model AutoResponder {
+  id           String      @id @default(cuid())
+  guildId      String
+  guild        GuildConfig @relation(fields: [guildId], references: [guildId])
+  triggerType  String      @default("keyword")
+  triggerValue String
+  responseText String?
+  enabled      Boolean     @default(true)
+  cooldownSec  Int         @default(30)
+}
+
+model FormSubmission {
+  id          String      @id @default(cuid())
+  guildId     String
+  guild       GuildConfig @relation(fields: [guildId], references: [guildId])
+  userId      String
+  formType    String
+  payload     Json
+  status      String      @default("pending")
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime    @default(now())
+}
+
+model LogEntry {
+  id          String      @id @default(cuid())
+  guildId     String
+  guild       GuildConfig @relation(fields: [guildId], references: [guildId])
+  eventType   String
+  userId      String?
+  moderatorId String?
+  channelId   String?
+  messageId   String?
+  payload     Json
+  createdAt   DateTime    @default(now())
+}

@@ -1,0 +1,20 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy bot package files
+COPY bot/package*.json ./bot/
+
+# Install dependencies
+RUN npm install --prefix bot
+
+# Copy Prisma schema
+COPY prisma ./prisma
+
+# Generate Prisma client
+RUN npm install -g @prisma/cli && cd bot && npx prisma generate
+
+# Copy bot source
+COPY bot ./bot
+
+CMD ["node", "bot/src/index.js"]
