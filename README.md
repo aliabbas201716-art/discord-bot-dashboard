@@ -1,177 +1,212 @@
-# Circle-Inspired Discord Bot & Dashboard
+# Discord Bot Web Dashboard
 
-A production-ready Discord bot with a modern web dashboard for server management, inspired by Circle Bot.
+A production-ready web dashboard for managing Discord bot server settings with live synchronization.
 
 ## Features
 
-### 🤖 Bot Features
-- **Moderation Suite**: Kick, ban, soft-ban, mute, timeout, warn commands
-- **Auto-Moderation**: Spam detection, invite link filtering, mass mention prevention, blacklisted words
-- **Event Logging**: Track deleted messages, edits, role updates, member activities
-- **Welcome/Goodbye**: Customizable welcome and goodbye messages with auto-role assignment
-- **Reaction Roles**: Interactive message menus for self-service role assignment
-- **Starboard**: Showcase popular messages when they reach a threshold
-- **Suggestions**: Discord modal-based suggestion system
-- **Auto-Responders**: Keyword-triggered automated responses
-- **Forms & Appeals**: Web-based form submissions for ban appeals and applications
-
-### 🎨 Dashboard Features
 - **Discord OAuth2 Authentication**: Secure login via Discord
-- **Guild Management**: View and manage all authorized servers
-- **Settings Panel**: Configure bot behavior per server
-- **Moderation Dashboard**: View logs and manage moderation actions
-- **Auto-Mod Configuration**: Customize filters and rules
-- **Welcome Setup**: Design welcome/goodbye messages
-- **Reaction Role Manager**: Create and manage reaction roles
-- **Starboard Settings**: Configure starboard thresholds
-- **Suggestions Queue**: Review and manage suggestions
-- **Forms & Appeals**: Review user submissions
+- **Real-time Settings Sync**: Changes to server settings instantly propagate to the bot
+- **Multi-server Management**: View and manage all servers you have admin access to
+- **Moderation Dashboard**: View logs and moderation actions
+- **Auto-Mod Configuration**: Customize filters and blacklisted words
+- **Welcome/Goodbye System**: Design custom join and leave messages
+- **Reaction Roles**: Create self-service role assignment menus
+- **Starboard**: Configure message showcase channels
+- **Suggestions & Appeals**: Review user submissions
 
 ## Tech Stack
 
-### Backend
-- **Runtime**: Node.js 20
-- **Bot Library**: discord.js v14
-- **Database**: PostgreSQL
-- **ORM**: Prisma
-- **Authentication**: Discord OAuth2
-
-### Frontend
 - **Framework**: Next.js 14 (App Router)
-- **UI Library**: React 18
-- **Styling**: Tailwind CSS
+- **UI**: React 18 + Tailwind CSS
+- **Auth**: NextAuth.js v5 with Discord provider
+- **Database**: PostgreSQL with Prisma ORM
+- **Real-time Sync**: REST API + Socket.IO
 - **Type Safety**: TypeScript
-
-### Infrastructure
-- **Containerization**: Docker
-- **Orchestration**: Docker Compose
-- **Cache**: Redis (optional)
 
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 20+
 - PostgreSQL 16+
 - Discord Developer Application
-- Docker & Docker Compose (optional)
+- Bot Repo running (for API endpoints)
 
-### Setup Steps
+### Environment Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/aliabbas201716-art/discord-bot-dashboard.git
-   cd discord-bot-dashboard
-   ```
-
-2. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your Discord bot token and OAuth credentials
-   ```
-
-3. **Install dependencies**
-   ```bash
-   cd bot && npm install
-   cd ../web && npm install
-   ```
-
-4. **Setup database**
-   ```bash
-   # Start PostgreSQL (or use Docker Compose)
-   docker-compose up -d postgres
-   
-   # Run migrations
-   npx prisma migrate dev --name init
-   ```
-
-5. **Start the bot**
-   ```bash
-   cd bot
-   npm run dev
-   ```
-
-6. **Start the dashboard**
-   ```bash
-   cd web
-   npm run dev
-   ```
-
-Visit `http://localhost:3000` and login with Discord.
-
-## Docker Deployment
+1. Copy `.env.example` to `.env.local`:
 
 ```bash
-docker-compose up --build
+cp .env.example .env.local
 ```
 
-This will start:
-- PostgreSQL database
-- Redis cache
-- Discord bot
-- Web dashboard on port 3000
+2. Fill in your Discord OAuth credentials:
+
+```env
+# Get these from Discord Developer Portal
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
+DISCORD_REDIRECT_URI=http://localhost:3000/api/auth/callback
+
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/botdb"
+
+# Generate with: openssl rand -base64 32
+NEXTAUTH_SECRET=your-generated-secret
+
+# Bot API for sync
+BOT_API_URL=http://localhost:3001
+```
+
+3. Install dependencies:
+
+```bash
+npm install
+```
+
+4. Run migrations:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+5. Start the dev server:
+
+```bash
+npm run dev
+```
+
+Visit `http://localhost:3000`
+
+## Discord OAuth Setup
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. Create a New Application
+3. Go to OAuth2 → General
+4. Copy **Client ID** and **Client Secret**
+5. Add Redirect URL: `http://localhost:3000/api/auth/callback`
+6. Add to `.env.local`
+
+## Database Schema
+
+See `prisma/schema.prisma` for the full schema.
+
+Key models:
+- `GuildConfig` - Server settings
+- `Warning` - User warnings and moderation history
+- `DashboardUser` - Dashboard user sessions
+- `LogEntry` - Event logs
+
+## API Routes
+
+- `POST /api/auth/signin` - Login with Discord
+- `GET /api/guilds` - Get user's guilds
+- `GET /api/guilds/[guildId]` - Get guild config
+- `POST /api/guilds/[guildId]/config` - Update guild settings
+- `GET /api/guilds/[guildId]/logs` - Get moderation logs
+- `POST /api/guilds/[guildId]/sync` - Sync settings to bot
+
+## Real-time Sync
+
+When a user updates server settings in the dashboard:
+
+1. Changes are saved to PostgreSQL
+2. API triggers a POST to `/bot-api/sync/guild-config`
+3. Bot receives update and invalidates its config cache
+4. Bot reloads config from database
+5. New rules take effect immediately
+
+No bot restart required.
+
+## Deployment
+
+### Docker
+
+```bash
+docker build -t discord-bot-dashboard .
+docker run -p 3000:3000 --env-file .env discord-bot-dashboard
+```
+
+### Vercel
+
+```bash
+npm i -g vercel
+vercel
+```
+
+### Railway
+
+```bash
+railway login
+railway link
+railway up
+```
 
 ## Project Structure
 
 ```
-.
-├── bot/                    # Discord bot source
-│   ├── src/
-│   │   ├── index.js       # Bot entry point
-│   │   ├── config/        # Environment config
-│   │   ├── database/      # Database operations
-│   │   ├── events/        # Discord event handlers
-│   │   ├── commands/      # Bot commands
-│   │   ├── services/      # Business logic
-│   │   └── utils/         # Utilities
-│   └── package.json
-├── web/                    # Next.js dashboard
-│   ├── app/
-│   │   ├── api/           # API routes
-│   │   ├── dashboard/     # Dashboard pages
-│   │   └── (auth)/        # Auth pages
-│   ├── components/        # Reusable components
-│   ├── lib/              # Utilities
-│   └── package.json
-├── prisma/
-│   └── schema.prisma      # Database schema
-├── docker-compose.yml
-├── .env.example
-└── README.md
+app/
+├─ api/
+│  ├─ auth/              # NextAuth routes
+│  │  ├─ [...nextauth]/route.ts
+│  │  └─ discord/route.ts
+│  ├─ guilds/            # Guild API
+│  │  ├─ route.ts
+│  │  └─ [guildId]/
+│  │     ├─ config/route.ts
+│  │     ├─ logs/route.ts
+│  │     └─ sync/route.ts
+│  └─ sync/              # Bot sync endpoint
+│     └─ route.ts
+├─ (auth)/              # Auth pages
+│  └─ login/page.tsx
+├─ dashboard/           # Dashboard pages
+│  ├─ page.tsx
+│  ├─ layout.tsx
+│  ├─ guilds/page.tsx
+│  └─ [guildId]/
+│     ├─ page.tsx
+│     ├─ settings/page.tsx
+│     ├─ moderation/page.tsx
+│     ├─ auto-mod/page.tsx
+│     └─ welcome/page.tsx
+├─ layout.tsx
+├─ page.tsx             # Homepage with auth
+└─ globals.css
+
+components/
+├─ auth/
+│  └─ DiscordLoginButton.tsx
+├─ dashboard/
+│  ├─ Sidebar.tsx
+│  ├─ GuildCard.tsx
+│  ├─ SettingsForm.tsx
+│  ├─ ModerationPanel.tsx
+│  ├─ AutoModPanel.tsx
+│  ├─ WelcomePanel.tsx
+│  └─ ReactionRolesPanel.tsx
+└─ ui/
+   ├─ Button.tsx
+   ├─ Input.tsx
+   ├─ Card.tsx
+   └─ Modal.tsx
+
+lib/
+├─ auth.ts              # NextAuth config
+├─ discord.ts           # Discord API helpers
+├─ db.ts                # Prisma client
+├─ fetcher.ts           # API fetch wrapper
+└─ utils.ts
+
+middleware.ts           # Auth middleware
 ```
-
-## Configuration
-
-See [SETUP.md](docs/SETUP.md) for detailed setup instructions.
-
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for architecture documentation.
-
-See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for production deployment guide.
 
 ## Contributing
 
-1. Create a feature branch: `git checkout -b feature/amazing-feature`
-2. Commit your changes: `git commit -m 'Add amazing feature'`
-3. Push to the branch: `git push origin feature/amazing-feature`
-4. Open a Pull Request
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Support
-
-For issues and questions, please open an issue on GitHub.
-
-## Roadmap
-
-- [ ] Real-time dashboard sync via WebSocket
-- [ ] Advanced analytics and statistics
-- [ ] Custom command builder
-- [ ] Multi-language support
-- [ ] Mobile-friendly dashboard
-- [ ] Premium features and subscriptions
-- [ ] Community templates
-
-## Acknowledgments
-
-Inspired by Circle Bot. Built with ❤️ by the community.
+MIT
